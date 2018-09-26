@@ -15,14 +15,20 @@
  */
 package io.atomix.rest.impl;
 
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.atomix.cluster.ClusterMembershipService;
+import io.atomix.cluster.MemberId;
+import io.atomix.cluster.NodeId;
 import io.atomix.cluster.messaging.ClusterCommunicationService;
 import io.atomix.cluster.messaging.ClusterEventService;
 import io.atomix.core.Atomix;
+import io.atomix.core.AtomixConfig;
 import io.atomix.core.PrimitivesService;
 import io.atomix.primitive.PrimitiveFactory;
 import io.atomix.primitive.config.PrimitiveConfig;
@@ -31,6 +37,7 @@ import io.atomix.primitive.protocol.PrimitiveProtocolConfig;
 import io.atomix.rest.AtomixResource;
 import io.atomix.rest.ManagedRestService;
 import io.atomix.rest.RestService;
+import io.atomix.utils.NamedType;
 import io.atomix.utils.misc.StringUtils;
 import io.atomix.utils.net.Address;
 import io.github.classgraph.ClassGraph;
@@ -47,6 +54,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ContextResolver;
 import javax.ws.rs.ext.Provider;
+import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -59,14 +68,16 @@ public class VertxRestService implements ManagedRestService {
   private static final Logger LOGGER = LoggerFactory.getLogger(VertxRestService.class);
 
   private final Atomix atomix;
+  private final AtomixConfig config;
   private final Address address;
   private final Vertx vertx;
   private HttpServer server;
   private VertxResteasyDeployment deployment;
   private final AtomicBoolean open = new AtomicBoolean();
 
-  public VertxRestService(Atomix atomix, Address address) {
+  public VertxRestService(Atomix atomix, AtomixConfig config, Address address) {
     this.atomix = checkNotNull(atomix, "atomix cannot be null");
+    this.config = checkNotNull(config, "config cannot be null");
     this.address = checkNotNull(address, "address cannot be null");
     this.vertx = Vertx.vertx();
   }
@@ -82,6 +93,8 @@ public class VertxRestService implements ManagedRestService {
     deployment = new VertxResteasyDeployment();
     deployment.start();
 
+    deployment.getDispatcher().getDefaultContextObjects()
+        .put(AtomixConfig.class, config);
     deployment.getDispatcher().getDefaultContextObjects()
         .put(ClusterMembershipService.class, atomix.getMembershipService());
     deployment.getDispatcher().getDefaultContextObjects()
@@ -154,6 +167,11 @@ public class VertxRestService implements ManagedRestService {
     mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
 
     SimpleModule module = new SimpleModule("PolymorphicTypes");
+    module.addSerializer(NamedType.class, new NamedTypeSerializer());
+    module.addSerializer(NodeId.class, new NodeIdSerializer());
+    module.addSerializer(MemberId.class, new MemberIdSerializer());
+    module.addSerializer(Address.class, new AddressSerializer());
+    module.addSerializer(Duration.class, new DurationSerializer());
     module.addDeserializer(PartitionGroupConfig.class, new PartitionGroupDeserializer(atomix.getRegistry()));
     module.addDeserializer(PrimitiveProtocolConfig.class, new PrimitiveProtocolDeserializer(atomix.getRegistry()));
     module.addDeserializer(PrimitiveConfig.class, new PrimitiveConfigDeserializer(atomix.getRegistry()));
@@ -174,7 +192,7 @@ public class VertxRestService implements ManagedRestService {
       if (address == null) {
         address = Address.from(DEFAULT_HOST, DEFAULT_PORT);
       }
-      return new VertxRestService(atomix, address);
+      return new VertxRestService(atomix, config, address);
     }
   }
 

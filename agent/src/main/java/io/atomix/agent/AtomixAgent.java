@@ -194,6 +194,7 @@ public class AtomixAgent {
 
     ManagedRestService rest = RestService.builder()
         .withAtomix(atomix)
+        .withConfig(config)
         .withAddress(Address.from(atomix.getMembershipService().getLocalMember().address().host(), httpPort))
         .build();
 

@@ -16,6 +16,7 @@
 package io.atomix.rest;
 
 import io.atomix.core.Atomix;
+import io.atomix.core.AtomixConfig;
 import io.atomix.utils.net.Address;
 import io.atomix.rest.impl.VertxRestService;
 
@@ -47,6 +48,7 @@ public interface RestService {
    */
   abstract class Builder implements io.atomix.utils.Builder<ManagedRestService> {
     protected Address address;
+    protected AtomixConfig config;
     protected Atomix atomix;
 
     /**
@@ -70,6 +72,17 @@ public interface RestService {
      */
     public Builder withAtomix(Atomix atomix) {
       this.atomix = checkNotNull(atomix, "atomix cannot be null");
+      return this;
+    }
+
+    /**
+     * Sets the Atomix configuration.
+     *
+     * @param config the Atomix configuration
+     * @return the REST service builder
+     */
+    public Builder withConfig(AtomixConfig config) {
+      this.config = checkNotNull(config, "config cannot be null");
       return this;
     }
   }

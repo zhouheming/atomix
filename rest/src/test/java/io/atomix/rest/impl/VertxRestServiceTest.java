@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.atomix.cluster.Node;
 import io.atomix.cluster.discovery.BootstrapDiscoveryProvider;
 import io.atomix.core.Atomix;
+import io.atomix.core.AtomixConfig;
 import io.atomix.protocols.backup.partition.PrimaryBackupPartitionGroup;
 import io.atomix.rest.ManagedRestService;
 import io.atomix.rest.RestService;
@@ -30,7 +31,6 @@ import io.restassured.filter.log.RequestLoggingFilter;
 import io.restassured.filter.log.ResponseLoggingFilter;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
-import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,8 +48,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
@@ -70,6 +70,20 @@ public class VertxRestServiceTest {
         .get("status")
         .then()
         .statusCode(200);
+  }
+
+  @Test
+  public void testConfig() throws Exception {
+    String value = given()
+        .spec(specs.get(0))
+        .when()
+        .get("config")
+        .then()
+        .statusCode(200)
+        .extract()
+        .body()
+        .asString();
+    checkNotNull(value);
   }
 
   @Test
@@ -411,7 +425,7 @@ public class VertxRestServiceTest {
     List<CompletableFuture<RestService>> serviceFutures = new ArrayList<>(3);
     services = new ArrayList<>(3);
     for (int i = 0; i < 3; i++) {
-      ManagedRestService restService = new VertxRestService(instances.get(i), Address.from("localhost", findAvailablePort(BASE_PORT)));
+      ManagedRestService restService = new VertxRestService(instances.get(i), new AtomixConfig(), Address.from("localhost", findAvailablePort(BASE_PORT)));
       serviceFutures.add(restService.start());
       services.add(restService);
     }
