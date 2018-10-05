@@ -36,6 +36,8 @@ import io.atomix.cluster.ClusterMembershipService;
 import io.atomix.cluster.discovery.NodeDiscoveryConfig;
 import io.atomix.cluster.discovery.NodeDiscoveryProvider;
 import io.atomix.cluster.messaging.ClusterCommunicationService;
+import io.atomix.cluster.protocol.GroupMembershipConfig;
+import io.atomix.cluster.protocol.GroupMembershipProtocol;
 import io.atomix.core.barrier.DistributedCyclicBarrier;
 import io.atomix.core.counter.AtomicCounter;
 import io.atomix.core.counter.DistributedCounter;
@@ -310,7 +312,8 @@ public class Atomix extends AtomixCluster implements PrimitivesService {
         new PolymorphicTypeMapper(null, PrimitiveConfig.class, PrimitiveType.class),
         new PolymorphicTypeMapper("type", PrimitiveProtocolConfig.class, PrimitiveProtocol.Type.class),
         new PolymorphicTypeMapper("type", ProfileConfig.class, Profile.Type.class),
-        new PolymorphicTypeMapper("type", NodeDiscoveryConfig.class, NodeDiscoveryProvider.Type.class));
+        new PolymorphicTypeMapper("type", NodeDiscoveryConfig.class, NodeDiscoveryProvider.Type.class),
+        new PolymorphicTypeMapper("type", GroupMembershipConfig.class, GroupMembershipProtocol.Type.class));
     return mapper.loadFiles(AtomixConfig.class, files, Lists.newArrayList(RESOURCES));
   }
 
