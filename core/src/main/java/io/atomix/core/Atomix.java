@@ -22,6 +22,8 @@ import io.atomix.cluster.ClusterMembershipService;
 import io.atomix.cluster.discovery.NodeDiscoveryConfig;
 import io.atomix.cluster.discovery.NodeDiscoveryProvider;
 import io.atomix.cluster.messaging.ClusterCommunicationService;
+import io.atomix.cluster.messaging.ManagedBroadcastService;
+import io.atomix.cluster.messaging.ManagedMessagingService;
 import io.atomix.cluster.protocol.GroupMembershipProtocol;
 import io.atomix.cluster.protocol.GroupMembershipProtocolConfig;
 import io.atomix.core.barrier.DistributedCyclicBarrier;
@@ -482,9 +484,13 @@ public class Atomix extends AtomixCluster implements PrimitivesService {
     this(config(classLoader, configFiles, AtomixRegistry.registry(classLoader)), AtomixRegistry.registry(classLoader));
   }
 
-  @SuppressWarnings("unchecked")
   protected Atomix(AtomixConfig config, AtomixRegistry registry) {
-    super(config.getClusterConfig(), VERSION);
+    this(config, registry, null, null);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected Atomix(AtomixConfig config, AtomixRegistry registry, ManagedMessagingService messagingService, ManagedBroadcastService broadcastService) {
+    super(config.getClusterConfig(), VERSION, messagingService, broadcastService);
     config.getProfiles().forEach(profile -> profile.getType().newProfile(profile).configure(config));
     this.executorService = Executors.newScheduledThreadPool(
         Math.max(Math.min(Runtime.getRuntime().availableProcessors() * 2, 8), 4),
